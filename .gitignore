@@ -1,0 +1,11 @@
+.venv/
+.chaPJ/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+.env
+tmp/
+data/documents/*.pdf
+data/qdrant_local/
+data/traces/*.jsonl
+data/eval_results/*.json

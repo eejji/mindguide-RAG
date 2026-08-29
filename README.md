@@ -13,11 +13,12 @@
 - `chunk_size`와 `overlap`을 적용한 문자 단위 청킹
 - 문서 ID, 페이지 번호, 청크 순번을 포함한 추적 가능한 청크 ID
 - 실제 지침 18페이지를 이용한 실행 예제
-- 청킹·실제 PDF 추출·벡터 검색 자동 테스트 10건
+- 청킹·실제 PDF 추출·벡터 검색·Qdrant 자동 테스트 11건
 - `intfloat/multilingual-e5-small`을 이용한 384차원 문서·질문 임베딩
 - 코사인 유사도 기반 인메모리 Top-K 검색
+- Qdrant local에 벡터와 출처 payload를 저장하고 Top-K 검색
 
-아직 Qdrant 영속 색인, 검색 평가, 의료 안전 Agent, FastAPI는 구현하지 않았습니다.
+아직 전체 PDF 적재, 검색 평가, 의료 안전 Agent, FastAPI는 구현하지 않았습니다.
 
 ## 현재 데이터 흐름
 
@@ -30,6 +31,7 @@ PDF 파일
   -> E5-small 384차원 Embedding
   -> 질문과 코사인 유사도 비교
   -> 관련 Chunk Top-3
+  -> Qdrant에 벡터 + 본문 + 페이지 + 출처 저장
 ```
 
 ## 프로젝트 구조
@@ -45,15 +47,18 @@ mindguide-ops-rebuild/
 |   |-- pdf_parser.py
 |   |-- chunking.py
 |   |-- embeddings.py
-|   `-- search.py
+|   |-- search.py
+|   `-- vector_store.py
 |-- tests/
 |   |-- test_chunking.py
 |   |-- test_pdf_parser.py
-|   `-- test_search.py
+|   |-- test_search.py
+|   `-- test_vector_store.py
 |-- stage1_demo.py
 |-- stage2_demo.py
 |-- stage4_demo.py
 |-- stage5_demo.py
+|-- stage6_demo.py
 |-- LEARNING_LOG.md
 `-- requirements.txt
 ```
@@ -65,6 +70,7 @@ mindguide-ops-rebuild/
 - Python 3.12
 - PyMuPDF 1.28.2
 - Sentence Transformers 3.0 이상
+- Qdrant Client 1.9 이상
 - pytest 9.1.1
 
 Windows PowerShell 기준:
@@ -113,6 +119,12 @@ python .\stage4_demo.py
 python .\stage5_demo.py
 ```
 
+Qdrant local 벡터 저장 및 Top-3 검색:
+
+```powershell
+python .\stage6_demo.py
+```
+
 전체 자동 테스트:
 
 ```powershell
@@ -152,11 +164,12 @@ overlap: 50
 - PDF 머리말, 페이지 번호, 표 구조를 별도로 정제하지 않았습니다.
 - 실제 PDF 자동 테스트는 대표 18페이지 한 건이며 전체 페이지 품질 검사는 아직 없습니다.
 - 검색 품질 평가는 아직 없습니다.
-- 현재 검색 대상은 한 페이지의 청크 5개이며 벡터를 메모리에만 보관합니다.
+- 인메모리 기준 검색과 Qdrant 검색을 모두 구현했지만 검색 대상은 아직 한 페이지뿐입니다.
+- Qdrant에는 아직 대표 18페이지의 청크 5개만 저장합니다.
 - 이 단계에는 생성형 답변이나 의료 안전 Agent 동작이 없습니다.
 
 ## 다음 단계
 
 - PDF 전처리 품질 점검
-- Qdrant 영속 인덱스와 근거 인용
+- 전체 PDF 페이지 적재와 Qdrant 인덱스 생성
 - 검색 평가, 의료 안전 라우팅, API

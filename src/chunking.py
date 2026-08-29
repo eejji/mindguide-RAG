@@ -68,4 +68,8 @@ def chunk_page(page: Page, chunk_size: int, overlap: int = 0) -> list[Chunk]:
 
         chunks.append(chunk)
 
+        # 현재 청크가 원문의 마지막 글자까지 포함되면 중복 청크 만들지 않고 종료
+        if end >= len(page.text):
+            break
+
     return chunks

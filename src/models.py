@@ -20,3 +20,11 @@ class Chunk: # 검색에 사용할 작은 텍스트 조각
     page_start: int
     page_end: int
     text:str
+
+@dataclass(frozen=True)
+class SearchResult:
+    # 검색된 원문 링크
+    chunk : Chunk
+
+    # 질문과 청크의 코사인 유사도
+    score: float

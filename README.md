@@ -13,9 +13,11 @@
 - `chunk_size`와 `overlap`을 적용한 문자 단위 청킹
 - 문서 ID, 페이지 번호, 청크 순번을 포함한 추적 가능한 청크 ID
 - 실제 지침 18페이지를 이용한 실행 예제
-- 청킹 경계·입력값 검증과 실제 PDF 추출 자동 테스트 8건
+- 청킹·실제 PDF 추출·벡터 검색 자동 테스트 10건
+- `intfloat/multilingual-e5-small`을 이용한 384차원 문서·질문 임베딩
+- 코사인 유사도 기반 인메모리 Top-K 검색
 
-아직 임베딩, 벡터 검색, Qdrant, 검색 평가, 의료 안전 Agent, FastAPI는 구현하지 않았습니다.
+아직 Qdrant 영속 색인, 검색 평가, 의료 안전 Agent, FastAPI는 구현하지 않았습니다.
 
 ## 현재 데이터 흐름
 
@@ -25,6 +27,9 @@ PDF 파일
   -> Page 객체
   -> 300자 단위 분할 (50자 overlap)
   -> 페이지와 문서 ID가 포함된 Chunk 객체 5개
+  -> E5-small 384차원 Embedding
+  -> 질문과 코사인 유사도 비교
+  -> 관련 Chunk Top-3
 ```
 
 ## 프로젝트 구조
@@ -38,12 +43,17 @@ mindguide-ops-rebuild/
 |   |-- __init__.py
 |   |-- models.py
 |   |-- pdf_parser.py
-|   `-- chunking.py
+|   |-- chunking.py
+|   |-- embeddings.py
+|   `-- search.py
 |-- tests/
 |   |-- test_chunking.py
-|   `-- test_pdf_parser.py
+|   |-- test_pdf_parser.py
+|   `-- test_search.py
 |-- stage1_demo.py
 |-- stage2_demo.py
+|-- stage4_demo.py
+|-- stage5_demo.py
 |-- LEARNING_LOG.md
 `-- requirements.txt
 ```
@@ -54,6 +64,7 @@ mindguide-ops-rebuild/
 
 - Python 3.12
 - PyMuPDF 1.28.2
+- Sentence Transformers 3.0 이상
 - pytest 9.1.1
 
 Windows PowerShell 기준:
@@ -90,6 +101,18 @@ python .\stage1_demo.py
 python .\stage2_demo.py
 ```
 
+실제 청크와 질문의 E5 임베딩 확인:
+
+```powershell
+python .\stage4_demo.py
+```
+
+코사인 유사도 Top-3 검색:
+
+```powershell
+python .\stage5_demo.py
+```
+
 전체 자동 테스트:
 
 ```powershell
@@ -119,6 +142,8 @@ overlap: 50
 - 단순 문자 청킹은 단어나 문장을 중간에서 자를 수 있습니다.
 - PDF의 표와 머리말·꼬리말은 텍스트 추출 과정에서 본문과 섞일 수 있습니다.
 - 실패 테스트로 마지막 중복 청크 문제를 재현하고 수정한 뒤 회귀 테스트로 보호했습니다.
+- E5에서는 문서에 `passage:`, 질문에 `query:` 접두어를 사용해야 합니다.
+- 임베딩 유사도는 정답 확률이 아니라 검색 관련도입니다.
 
 ## 현재 한계
 
@@ -127,12 +152,11 @@ overlap: 50
 - PDF 머리말, 페이지 번호, 표 구조를 별도로 정제하지 않았습니다.
 - 실제 PDF 자동 테스트는 대표 18페이지 한 건이며 전체 페이지 품질 검사는 아직 없습니다.
 - 검색 품질 평가는 아직 없습니다.
-- 이 단계에는 RAG 검색이나 Agent 동작이 없습니다.
+- 현재 검색 대상은 한 페이지의 청크 5개이며 벡터를 메모리에만 보관합니다.
+- 이 단계에는 생성형 답변이나 의료 안전 Agent 동작이 없습니다.
 
 ## 다음 단계
 
 - PDF 전처리 품질 점검
-- E5 임베딩을 이용한 벡터 변환
-- 질문과 청크의 코사인 유사도 검색
 - Qdrant 영속 인덱스와 근거 인용
 - 검색 평가, 의료 안전 라우팅, API

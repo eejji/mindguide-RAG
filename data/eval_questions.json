@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "document_id": "depression_cpg_2022",
+  "index_version": "rebuild_e5_c300_o50_full_pdf_v1",
+  "retrieval_eval": [
+    {
+      "qid": "r01",
+      "question": "일차 의료에서 우울증 선별에 사용할 수 있는 도구는 무엇인가?",
+      "relevant_pages": [18, 19],
+      "relevant_chunk_ids": [
+        "depression_cpg_2022_p19_c004"
+      ],
+      "keywords": ["PHQ-2", "PHQ-9", "선별"],
+      "expected_answer_note": "PHQ-2를 사용할 수 있으며 양성 또는 만성질환 환자에게 PHQ-9을 고려한다."
+    },
+    {
+      "qid": "r02",
+      "question": "우울증은 어떤 기준으로 진단하는가?",
+      "relevant_pages": [18, 19, 91, 129],
+      "relevant_chunk_ids": [
+        "depression_cpg_2022_p19_c004",
+        "depression_cpg_2022_p19_c001"
+      ],
+      "keywords": ["진단", "2주", "DSM"],
+      "expected_answer_note": "DSM 기준과 증상 지속 기간을 확인한다."
+    },
+    {
+      "qid": "r03",
+      "question": "자살 위험이 있는 우울증 환자는 어떻게 평가해야 하는가?",
+      "relevant_pages": [26, 27, 85],
+      "relevant_chunk_ids": [
+        "depression_cpg_2022_p27_c001",
+        "depression_cpg_2022_p85_c004",
+        "depression_cpg_2022_p26_c003"
+      ],
+      "keywords": ["자살", "평가"],
+      "expected_answer_note": "자살 위험과 관련 요인을 직접적이고 포괄적으로 평가한다."
+    },
+    {
+      "qid": "r04",
+      "question": "항우울제 치료는 증상이 좋아진 후 얼마나 유지해야 하는가?",
+      "relevant_pages": [45, 58],
+      "relevant_chunk_ids": [
+        "depression_cpg_2022_p45_c003",
+        "depression_cpg_2022_p58_c003"
+      ],
+      "keywords": ["항우울제", "유지"],
+      "expected_answer_note": "호전 이후에도 일정 기간 유지치료가 필요하다."
+    },
+    {
+      "qid": "r05",
+      "question": "경도 우울증 환자에게 권고되는 치료 방법은 무엇인가?",
+      "relevant_pages": [35, 40, 41, 145],
+      "relevant_chunk_ids": [
+        "depression_cpg_2022_p35_c002",
+        "depression_cpg_2022_p145_c002"
+      ],
+      "keywords": ["경도", "치료"],
+      "expected_answer_note": "심리사회적 치료와 생활 활동 등을 우선 고려한다."
+    },
+    {
+      "qid": "r06",
+      "question": "우울증 약을 복용할 때 주의해야 할 점은 무엇인가?",
+      "relevant_pages": [45, 58, 59, 97],
+      "relevant_chunk_ids": [
+        "depression_cpg_2022_p58_c002",
+        "depression_cpg_2022_p59_c001",
+        "depression_cpg_2022_p59_c002",
+        "depression_cpg_2022_p45_c004",
+        "depression_cpg_2022_p97_c001"
+      ],
+      "keywords": ["복용", "부작용"],
+      "expected_answer_note": "부작용과 약물 상호작용 및 지속적인 증상을 확인한다."
+    },
+    {
+      "qid": "r08",
+      "question": "가족은 우울증 치료 과정에 어떻게 참여할 수 있는가?",
+      "relevant_pages": [27, 45],
+      "relevant_chunk_ids": [
+        "depression_cpg_2022_p45_c001",
+        "depression_cpg_2022_p27_c001"
+      ],
+      "keywords": ["가족", "참여"],
+      "expected_answer_note": "환자 동의와 상황에 따라 가족이 치료 과정에 참여할 수 있다."
+    },
+    {
+      "qid": "r09",
+      "question": "우울증의 주요 증상에는 어떤 것들이 있는가?",
+      "relevant_pages": [84, 91],
+      "relevant_chunk_ids": [
+        "depression_cpg_2022_p91_c002",
+        "depression_cpg_2022_p91_c003",
+        "depression_cpg_2022_p84_c002"
+      ],
+      "keywords": ["흥미", "수면", "식욕"],
+      "expected_answer_note": "우울 기분, 흥미 저하, 수면·식욕 변화 등의 증상을 확인한다."
+    }
+  ]
+}

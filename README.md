@@ -13,13 +13,14 @@
 - `chunk_size`와 `overlap`을 적용한 문자 단위 청킹
 - 문서 ID, 페이지 번호, 청크 순번을 포함한 추적 가능한 청크 ID
 - 실제 지침 18페이지를 이용한 실행 예제
-- 청킹·실제 PDF 추출·벡터 검색·Qdrant 자동 테스트 13건
+- 청킹·실제 PDF 추출·벡터 검색·Qdrant·평가셋 자동 테스트 14건
 - `intfloat/multilingual-e5-small`을 이용한 384차원 문서·질문 임베딩
 - 코사인 유사도 기반 인메모리 Top-K 검색
 - Qdrant local에 벡터와 출처 payload를 저장하고 Top-K 검색
 - 실제 진료지침 152페이지에서 청크 747개를 생성해 전체 색인
+- 수동 검수한 8개 질문 qrel로 Page·Evidence Hit@K와 MRR@5 평가
 
-아직 검색 평가, 의료 안전 Agent, FastAPI는 구현하지 않았습니다.
+아직 무근거 질문 거부 평가, 의료 안전 Agent, FastAPI는 구현하지 않았습니다.
 
 ## 현재 데이터 흐름
 
@@ -34,6 +35,7 @@ PDF 파일
   -> 관련 Chunk Top-3
   -> Qdrant에 벡터 + 본문 + 페이지 + 출처 저장
   -> 전체 문서 747개 Point 대상 검색
+  -> 8개 질문의 페이지·직접 근거 검색 품질 평가
 ```
 
 ## 프로젝트 구조
@@ -41,6 +43,7 @@ PDF 파일
 ```text
 mindguide-ops-rebuild/
 |-- data/
+|   |-- eval_questions.json
 |   `-- documents/
 |       `-- README.md
 |-- src/
@@ -62,6 +65,7 @@ mindguide-ops-rebuild/
 |-- stage5_demo.py
 |-- stage6_demo.py
 |-- stage7_demo.py
+|-- stage8_demo.py
 |-- LEARNING_LOG.md
 `-- requirements.txt
 ```
@@ -134,6 +138,22 @@ python .\stage6_demo.py
 python .\stage7_demo.py
 ```
 
+Page·Evidence 검색 평가:
+
+```powershell
+python .\stage8_demo.py
+```
+
+현재 수동 검수 qrel 기준 결과:
+
+```text
+Page Hit@1:       0.875
+Page Hit@3:       1.000
+Evidence Hit@1:   0.625
+Evidence Hit@3:   1.000
+Evidence MRR@5:   0.812
+```
+
 전체 자동 테스트:
 
 ```powershell
@@ -165,6 +185,8 @@ overlap: 50
 - 실패 테스트로 마지막 중복 청크 문제를 재현하고 수정한 뒤 회귀 테스트로 보호했습니다.
 - E5에서는 문서에 `passage:`, 질문에 `query:` 접두어를 사용해야 합니다.
 - 임베딩 유사도는 정답 확률이 아니라 검색 관련도입니다.
+- 관련 페이지를 찾는 것과 질문에 직접 답하는 청크를 찾는 것은 다릅니다.
+- 키워드 적중은 진단용이며 relevance 정답표를 대체할 수 없습니다.
 
 ## 현재 한계
 
@@ -175,10 +197,12 @@ overlap: 50
 - 검색 품질 평가는 아직 없습니다.
 - 인메모리 기준 검색과 Qdrant 검색을 모두 구현했지만 검색 대상은 아직 한 페이지뿐입니다.
 - 현재 corpus는 우울증 진료지침 PDF 한 종이며 다른 기관 문서는 아직 포함하지 않습니다.
+- 평가 질문은 8개뿐이며 `relevant_chunk_ids`는 현재 index version에 종속된 수동 검수 초안입니다.
 - 이 단계에는 생성형 답변이나 의료 안전 Agent 동작이 없습니다.
 
 ## 다음 단계
 
 - PDF 전처리 품질 점검
-- 검색 질문·정답표와 Hit@K·MRR 평가
+- 무근거·무관 질문을 이용한 검색 거부 임계값 평가
+- 의료 안전 라우팅과 FastAPI
 - 검색 평가, 의료 안전 라우팅, API

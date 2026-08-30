@@ -73,3 +73,27 @@ def chunk_page(page: Page, chunk_size: int, overlap: int = 0) -> list[Chunk]:
             break
 
     return chunks
+
+
+def chunk_pages(
+        pages: list[Page],
+        chunk_size : int,
+        overlap: int = 0
+) -> list[Chunk]:
+    """
+    여러 Page 객체를 순서대로 청킹
+    """
+
+    all_chunks: list[Chunk] = []
+
+    for page in pages:
+        page_chunks = chunk_page(
+            page = page,
+            chunk_size = chunk_size,
+            overlap = overlap
+        )
+
+        for chunk in page_chunks:
+            all_chunks.append(chunk)
+
+    return all_chunks

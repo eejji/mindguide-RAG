@@ -13,12 +13,13 @@
 - `chunk_size`와 `overlap`을 적용한 문자 단위 청킹
 - 문서 ID, 페이지 번호, 청크 순번을 포함한 추적 가능한 청크 ID
 - 실제 지침 18페이지를 이용한 실행 예제
-- 청킹·실제 PDF 추출·벡터 검색·Qdrant 자동 테스트 11건
+- 청킹·실제 PDF 추출·벡터 검색·Qdrant 자동 테스트 13건
 - `intfloat/multilingual-e5-small`을 이용한 384차원 문서·질문 임베딩
 - 코사인 유사도 기반 인메모리 Top-K 검색
 - Qdrant local에 벡터와 출처 payload를 저장하고 Top-K 검색
+- 실제 진료지침 152페이지에서 청크 747개를 생성해 전체 색인
 
-아직 전체 PDF 적재, 검색 평가, 의료 안전 Agent, FastAPI는 구현하지 않았습니다.
+아직 검색 평가, 의료 안전 Agent, FastAPI는 구현하지 않았습니다.
 
 ## 현재 데이터 흐름
 
@@ -32,6 +33,7 @@ PDF 파일
   -> 질문과 코사인 유사도 비교
   -> 관련 Chunk Top-3
   -> Qdrant에 벡터 + 본문 + 페이지 + 출처 저장
+  -> 전체 문서 747개 Point 대상 검색
 ```
 
 ## 프로젝트 구조
@@ -59,6 +61,7 @@ mindguide-ops-rebuild/
 |-- stage4_demo.py
 |-- stage5_demo.py
 |-- stage6_demo.py
+|-- stage7_demo.py
 |-- LEARNING_LOG.md
 `-- requirements.txt
 ```
@@ -125,6 +128,12 @@ Qdrant local 벡터 저장 및 Top-3 검색:
 python .\stage6_demo.py
 ```
 
+전체 PDF 페이지 적재 및 Top-5 검색:
+
+```powershell
+python .\stage7_demo.py
+```
+
 전체 자동 테스트:
 
 ```powershell
@@ -165,11 +174,11 @@ overlap: 50
 - 실제 PDF 자동 테스트는 대표 18페이지 한 건이며 전체 페이지 품질 검사는 아직 없습니다.
 - 검색 품질 평가는 아직 없습니다.
 - 인메모리 기준 검색과 Qdrant 검색을 모두 구현했지만 검색 대상은 아직 한 페이지뿐입니다.
-- Qdrant에는 아직 대표 18페이지의 청크 5개만 저장합니다.
+- 현재 corpus는 우울증 진료지침 PDF 한 종이며 다른 기관 문서는 아직 포함하지 않습니다.
 - 이 단계에는 생성형 답변이나 의료 안전 Agent 동작이 없습니다.
 
 ## 다음 단계
 
 - PDF 전처리 품질 점검
-- 전체 PDF 페이지 적재와 Qdrant 인덱스 생성
+- 검색 질문·정답표와 Hit@K·MRR 평가
 - 검색 평가, 의료 안전 라우팅, API

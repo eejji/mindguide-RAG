@@ -1,7 +1,7 @@
 import pytest
 
 from src.models import Page
-from src.chunking import chunk_page
+from src.chunking import chunk_page, chunk_pages
 
 def test_short_page_creates_one_chunk():
     # 300자 보다 짧은 페이지 만들기
@@ -159,3 +159,23 @@ def test_empty_page_creates_no_chunks():
     )
 
     assert chunks == []
+
+
+def test_chunk_pages_preserves_each_page_number():
+    pages = [
+        Page("test_document", 1, "ABCDE"),
+        Page("test_document", 2, "123456"),
+    ]
+
+    chunks = chunk_pages(
+        pages=pages,
+        chunk_size=5,
+        overlap=0,
+    )
+
+    assert len(chunks) == 3
+    assert chunks[0].chunk_id == "test_document_p1_c001"
+    assert chunks[1].chunk_id == "test_document_p2_c001"
+    assert chunks[2].chunk_id == "test_document_p2_c002"
+    assert chunks[0].page_start == 1
+    assert chunks[1].page_start == 2

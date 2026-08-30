@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from src.models import Page
-from src.pdf_parser import extract_page
+from src.pdf_parser import extract_page, extract_pages
 
 # 현재 테스트 파일 위치를 기준으로 프로젝트 최상위 폴더 찾기
 project_root = Path(__file__).resolve().parents[1]
@@ -48,3 +48,21 @@ def test_extract_real_guideline_page():
     assert len(page.text) > 100
     assert "우울증" in page.text
     assert "PHQ-9" in page.text
+
+
+@pytest.mark.skipif(
+    not guideline_pdf_path.is_file(),
+    reason="실습용 우울증 임상진료지침 PDF가 없습니다."
+)
+def test_extract_real_guideline_page_range():
+    pages = extract_pages(
+        pdf_path=guideline_pdf_path,
+        document_id="depression_cpg_2022",
+        start_page=18,
+        end_page=19,
+    )
+
+    assert len(pages) == 2
+    assert pages[0].page_number == 18
+    assert pages[1].page_number == 19
+    assert "PHQ-9" in pages[0].text

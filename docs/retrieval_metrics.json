@@ -1,0 +1,64 @@
+{
+  "snapshot_date": "2026-09-07",
+  "source": "data/eval_results/latest_retrieval_eval.json",
+  "evaluation_run_at": null,
+  "note": "Original result contains no run timestamp. Snapshot omits retrieved document text.",
+  "index_version": "rebuild_e5_c300_o50_full_pdf_v1",
+  "embedding_model": "intfloat/multilingual-e5-small",
+  "collection_name": "depression_guideline_chunks",
+  "metrics": {
+    "question_count": 8,
+    "top_k": 5,
+    "page_hit_at_1": 0.875,
+    "page_hit_at_3": 1.0,
+    "page_hit_at_5": 1.0,
+    "page_mrr_at_5": 0.9375,
+    "evidence_hit_at_1": 0.625,
+    "evidence_hit_at_3": 1.0,
+    "evidence_hit_at_5": 1.0,
+    "evidence_mrr_at_5": 0.8125,
+    "keyword_hit_at_5": 1.0
+  },
+  "first_relevant_ranks": [
+    {
+      "qid": "r01",
+      "first_relevant_page_rank": 1,
+      "first_relevant_chunk_rank": 1
+    },
+    {
+      "qid": "r02",
+      "first_relevant_page_rank": 1,
+      "first_relevant_chunk_rank": 1
+    },
+    {
+      "qid": "r03",
+      "first_relevant_page_rank": 1,
+      "first_relevant_chunk_rank": 2
+    },
+    {
+      "qid": "r04",
+      "first_relevant_page_rank": 1,
+      "first_relevant_chunk_rank": 2
+    },
+    {
+      "qid": "r05",
+      "first_relevant_page_rank": 1,
+      "first_relevant_chunk_rank": 1
+    },
+    {
+      "qid": "r06",
+      "first_relevant_page_rank": 1,
+      "first_relevant_chunk_rank": 1
+    },
+    {
+      "qid": "r08",
+      "first_relevant_page_rank": 2,
+      "first_relevant_chunk_rank": 2
+    },
+    {
+      "qid": "r09",
+      "first_relevant_page_rank": 1,
+      "first_relevant_chunk_rank": 1
+    }
+  ]
+}

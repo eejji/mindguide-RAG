@@ -1,208 +1,192 @@
-# MindGuideOps Rebuild
+# MindGuide — 의료 문서 RAG 학습 포트폴리오
 
-공식 우울증 임상진료지침을 활용해 의료 RAG의 데이터 처리 과정을 처음부터 다시 구현하는 학습 프로젝트입니다.
+우울증 임상진료지침 PDF에서 질문과 관련된 문단을 검색하고, 출처를 포함한 답변 초안을 보여주는 **로컬 학습용 프로토타입**입니다.
+PDF 추출·청킹부터 벡터 검색, 평가, Claude 답변 생성, 규칙 기반 입력 분기와 웹 화면까지 단계별로 재구현했습니다.
 
-기존 포트폴리오 완성본을 복사하지 않고, Codex의 단계별 설명을 참고해 코드를 직접 작성하고 실행 결과를 확인하고 있습니다. 이 저장소에는 현재까지 직접 실습한 범위만 기록합니다.
+> **1차 구현 범위 동결: 2026-09-07.** 진단·처방·응급 판단을 제공하는 의료 서비스가 아닙니다. 답변과 인용의 정확성, 개인정보 차단의 완전성, 임상적 안전성을 보장하지 않습니다.
 
-## 현재 구현 범위
+기존 완성본을 이해하기 위한 별도 학습 저장소입니다. Codex의 코드 예제·설명·검토 도움을 받아 직접 작성하고 실행 결과를 비교했으며, 문서 정리에도 AI를 활용했습니다. 혼자 도움 없이 전부 설계했다고 주장하지 않습니다.
 
-현재 단계는 **실제 PDF 한 페이지 추출 및 페이지 단위 문자 청킹**입니다.
+[검증 결과와 실패 사례](docs/VALIDATION.md) · [포트폴리오 소개·면접 준비](docs/PORTFOLIO_NOTES.md) · [단계별 학습 기록](LEARNING_LOG.md)
 
-- `Document`, `Page`, `Chunk` 데이터 모델
-- PyMuPDF를 이용한 지정 페이지 텍스트 추출
-- `chunk_size`와 `overlap`을 적용한 문자 단위 청킹
-- 문서 ID, 페이지 번호, 청크 순번을 포함한 추적 가능한 청크 ID
-- 실제 지침 18페이지를 이용한 실행 예제
-- 청킹·실제 PDF 추출·벡터 검색·Qdrant·평가셋 자동 테스트 14건
-- `intfloat/multilingual-e5-small`을 이용한 384차원 문서·질문 임베딩
-- 코사인 유사도 기반 인메모리 Top-K 검색
-- Qdrant local에 벡터와 출처 payload를 저장하고 Top-K 검색
-- 실제 진료지침 152페이지에서 청크 747개를 생성해 전체 색인
-- 수동 검수한 8개 질문 qrel로 Page·Evidence Hit@K와 MRR@5 평가
+## 실제 구현 화면
 
-아직 무근거 질문 거부 평가, 의료 안전 Agent, FastAPI는 구현하지 않았습니다.
+아래는 사용자가 직접 실행해 제공한 화면입니다. 성공만 보여주기 위한 예시가 아니라 **근거 부족을 언급한 뒤에도 추가 설명을 생성하는 한계**가 관찰된 실제 결과입니다. 합성 이미지가 아니며 답변을 편집하지 않았습니다.
 
-## 현재 데이터 흐름
+<details>
+<summary>웹 화면 보기 — 근거 부족 질문과 답변 초안</summary>
+
+![혈액형 질문에 근거 부족을 언급한 뒤 설명을 계속한 실제 실행 화면](docs/images/evidence-limitation.png)
+
+</details>
+
+화면에서 질문 입력, 처리 상태, 답변 초안, 모델에 제공한 출처의 PDF 페이지·청크 ID를 확인할 수 있습니다. 다른 실행에서 표현과 인용이 달라질 수 있습니다. [개인 증상 질문의 분기 누락 화면](docs/images/clinical-routing-miss.png)도 미해결 사례로 남겼습니다.
+
+## 구현한 것
+
+| 영역 | 구현 내용 |
+|---|---|
+| 문서 처리 | PyMuPDF 페이지별 추출, 문자 기준 300자 청킹·50자 overlap |
+| 검색 | E5-small 384차원 정규화 임베딩, 코사인 유사도, Qdrant local |
+| 출처 추적 | 문서 ID, PDF 페이지, 청크 ID, 원문 URL을 payload와 함께 저장 |
+| 검색 평가 | 수동 검수한 8개 질문으로 Page·Evidence Hit@K, MRR@5 측정 |
+| 거부 임계값 실험 | 양성 8개·무근거 8개 질문의 점수 분포와 허용/거절 지표 비교 |
+| 답변 초안 | LangChain 프롬프트와 ChatAnthropic으로 Claude 호출 |
+| 입력 분기 | LangGraph의 고정 조건 분기로 빈 입력·일부 개인정보·의료 판단 요청·위기 관련 표현 처리 |
+| 웹 화면 | Streamlit 질문 입력, 처리 결과, 답변, 출처 표시 |
+
+사용 문서는 **우울증 진료지침 PDF 한 종**입니다. 범용 의료 지식 전체를 다루지 않습니다. 현재 로컬 파일 확인 결과는 PDF 152페이지, 비어 있지 않은 텍스트 페이지 136개, 청크 747개입니다.
+
+## 작동 과정
+
+문서 준비는 질문할 때마다 하지 않고 먼저 한 번 수행합니다.
 
 ```text
-PDF 파일
-  -> 18페이지 텍스트 추출
-  -> Page 객체
-  -> 300자 단위 분할 (50자 overlap)
-  -> 페이지와 문서 ID가 포함된 Chunk 객체 5개
-  -> E5-small 384차원 Embedding
-  -> 질문과 코사인 유사도 비교
-  -> 관련 Chunk Top-3
-  -> Qdrant에 벡터 + 본문 + 페이지 + 출처 저장
-  -> 전체 문서 747개 Point 대상 검색
-  -> 8개 질문의 페이지·직접 근거 검색 품질 평가
+[문서 준비: stage7_demo.py]
+PDF → 페이지별 텍스트 → 청크(300자 / overlap 50자)
+    → E5 passage 임베딩 → Qdrant에 벡터·본문·출처 저장
+
+[질문 처리: stage11_demo.py → stage12_demo.py에서 호출]
+웹 질문 → 규칙 기반 입력 검사
+           ├─ 고정 안내 경로 → 안내 표시 → 종료
+           └─ 일반 질문
+                → E5 query 임베딩 → Qdrant Top-3 검색
+                → 번호가 붙은 참고 자료 구성
+                ├─ 참고 본문이 비어 있음 → NO_EVIDENCE
+                └─ 본문 있음 → Claude → ANSWER_DRAFT → 답변·출처 표시
 ```
 
-## 프로젝트 구조
+LangGraph는 미리 작성한 경로를 연결하는 **조건부 워크플로**입니다. 자율적으로 계획을 세우거나 도구를 선택하는 Agent는 아닙니다. 질문마다 새 상태를 사용하며 이전 대화를 기억하지 않습니다.
 
-```text
-mindguide-ops-rebuild/
-|-- data/
-|   |-- eval_questions.json
-|   `-- documents/
-|       `-- README.md
-|-- src/
-|   |-- __init__.py
-|   |-- models.py
-|   |-- pdf_parser.py
-|   |-- chunking.py
-|   |-- embeddings.py
-|   |-- search.py
-|   `-- vector_store.py
-|-- tests/
-|   |-- test_chunking.py
-|   |-- test_pdf_parser.py
-|   |-- test_search.py
-|   `-- test_vector_store.py
-|-- stage1_demo.py
-|-- stage2_demo.py
-|-- stage4_demo.py
-|-- stage5_demo.py
-|-- stage6_demo.py
-|-- stage7_demo.py
-|-- stage8_demo.py
-|-- LEARNING_LOG.md
-`-- requirements.txt
-```
+### 처리 상태의 정확한 의미
 
-진료지침 PDF는 파일 크기와 재배포 조건을 고려해 Git 저장소에 포함하지 않습니다.
+| 상태 | 현재 구현의 의미 |
+|---|---|
+| `EMPTY_INPUT` | 공백을 제거한 질문이 비어 있음 |
+| `PII_BLOCK` | 정규식에 해당하는 휴대폰·이메일·주민번호 형태를 발견 |
+| `CLINICIAN_REVIEW` | 등록한 표현을 발견해 의료진 상담 안내 표시. 실제 전달 없음 |
+| `EMERGENCY_GUIDANCE` | 등록한 위기 관련 표현에 대한 고정 안내 |
+| `SAFETY_CHECK` | 일부 부정 표현을 발견해 일반 답변을 보류하고 확인 안내 표시 |
+| `NO_EVIDENCE` | 검색 결과에서 구성한 참고 본문이 비어 있음 |
+| `ANSWER_DRAFT` | LLM이 답변 문자열을 반환함. 근거 충분성 검증을 뜻하지 않음 |
 
-## 실행 환경
+**주의:** LLM이 “근거를 찾지 못했다”고 답해도 상태는 `ANSWER_DRAFT`입니다. `NO_EVIDENCE`는 질문에 대한 의미적 근거 부족을 판정하는 기능이 아닙니다. 9단계에서 실험한 유사도 임계값도 현재 웹 실행 경로에 적용하지 않았습니다.
 
-- Python 3.12
-- PyMuPDF 1.28.2
-- Sentence Transformers 3.0 이상
-- Qdrant Client 1.9 이상
-- pytest 9.1.1
+## 평가 결과
 
-Windows PowerShell 기준:
+현재 저장된 검색 평가의 정답표는 8개 질문에 대한 수동 검수 페이지·청크 ID입니다. 평가 검색 범위는 Top-5이며, 답변 생성에는 Top-3을 사용합니다.
+
+| 지표 | 저장된 결과 |
+|---|---:|
+| Page Hit@1 | 0.875 |
+| Page Hit@3 | 1.000 |
+| Page MRR@5 | 0.9375 |
+| Evidence Hit@1 | 0.625 |
+| Evidence Hit@3 | 1.000 |
+| Evidence MRR@5 | 0.8125 |
+
+- Page 지표: 정답으로 표시한 페이지가 검색되는지 측정합니다.
+- Evidence 지표: 정답으로 표시한 **직접 근거 청크 ID**가 검색되는지 측정합니다.
+- 위 수치는 작은 학습용 평가셋의 검색 결과이며 **생성 답변 정확도, 인용 정확도, 임상 안전성이나 일반화 성능이 아닙니다.**
+- 동일 평가셋을 개발 중 반복 확인했으며 독립적인 테스트셋 성능으로 주장하지 않습니다.
+- 원문 본문을 제외한 [평가 스냅샷](docs/retrieval_metrics.json)을 저장했습니다. 원본 결과 JSON에는 실행 시각이 없어 실행 날짜를 단정하지 않습니다.
+- 16개 양성·무근거 질문 실험에서는 점수 분포가 겹쳤습니다. “유사도가 높으면 답변 근거가 있다”는 판단의 한계를 확인했습니다.
+
+마감 점검에서 기존 자동 테스트 **16개 통과** 및 의존성 충돌 없음이 확인됐습니다. 이 테스트들은 청킹·PDF 대표 페이지·검색 계산·평가 데이터·Qdrant 기본 동작·임계값 계산을 대상으로 합니다. [범위와 미검증 항목](docs/VALIDATION.md)을 함께 확인하세요.
+
+## 로컬 실행
+
+### 1. 환경 준비
+
+Windows PowerShell, Python 3.12 기준입니다. 아래 명령은 저장소 최상위 폴더에서 실행합니다. 이미 `.chaPJ` 같은 가상환경을 사용 중이라면 새로 만들지 말고 기존 환경을 활성화하세요.
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r .\requirements.txt
-$env:PYTHONUTF8 = '1'
+$env:PYTHONUTF8 = "1"
 ```
 
-`PYTHONUTF8` 설정은 Windows 터미널에서 PDF 본문의 특수 기호가 깨지는 문제를 방지합니다.
+### 2. PDF 준비와 전체 색인
 
-## 실습용 PDF 준비
+[문서 준비 안내](data/documents/README.md)에 따라 공식 출처의 PDF를 로컬에 준비합니다.
 
-대한의학회·질병관리청의 `일차 의료용 우울증 임상진료지침`을 사용했습니다.
-
-- 공식 출처: <https://guideline.or.kr/chronic/view.php?number=98>
-- 저장 위치: `data/documents/우울증임상진료지침_대한의학회.pdf`
-
-자세한 준비 방법은 [`data/documents/README.md`](data/documents/README.md)를 참고합니다.
-
-## 실행 방법
-
-데이터 모델 확인:
-
-```powershell
-python .\stage1_demo.py
+```text
+data/documents/우울증임상진료지침_대한의학회.pdf
 ```
-
-실제 PDF 18페이지 추출 및 청킹:
-
-```powershell
-python .\stage2_demo.py
-```
-
-실제 청크와 질문의 E5 임베딩 확인:
-
-```powershell
-python .\stage4_demo.py
-```
-
-코사인 유사도 Top-3 검색:
-
-```powershell
-python .\stage5_demo.py
-```
-
-Qdrant local 벡터 저장 및 Top-3 검색:
-
-```powershell
-python .\stage6_demo.py
-```
-
-전체 PDF 페이지 적재 및 Top-5 검색:
 
 ```powershell
 python .\stage7_demo.py
 ```
 
-Page·Evidence 검색 평가:
+이 명령은 `data/qdrant_local`의 `depression_guideline_chunks` 컬렉션을 **삭제 후 재생성**합니다. 기존 컬렉션을 보존해야 한다면 실행하지 마세요. 앱을 먼저 중지하고 실행하며, 매 질문마다 색인을 다시 만들 필요는 없습니다. 첫 모델 실행 시 Hugging Face에서 모델을 내려받을 수 있습니다.
+
+6단계도 같은 컬렉션을 한 페이지 데이터로 다시 만들므로, 7단계 이후에 6단계를 실행했다면 전체 검색 전에 7단계를 다시 수행해야 합니다.
+
+### 3. API 키와 웹 화면
+
+일반 질문의 답변 생성에는 Claude API 키가 필요하고 이용요금이 발생할 수 있습니다. 질문과 검색한 참고 본문이 해당 외부 API로 전송됩니다. 키를 코드·README·Git·채팅에 넣지 마세요.
+
+키가 현재 터미널에 없다면 비공개 입력합니다.
 
 ```powershell
+$taskClaudeKey = Read-Host "Claude API 키" -AsSecureString
+$env:ANTHROPIC_API_KEY = [System.Net.NetworkCredential]::new("", $taskClaudeKey).Password
+```
+
+```powershell
+python -m streamlit run .\stage12_demo.py --server.address=127.0.0.1 --browser.gatherUsageStats=false
+```
+
+터미널의 Local URL을 열고, 종료는 `Ctrl+C`로 합니다. 로컬 단일 사용자 실습용이며 외부 배포·인증·동시 사용자 운영을 구성하지 않았습니다. 고정 안내 경로는 API 키나 검색 인덱스 없이도 확인할 수 있습니다. 일반 질문은 키와 인덱스가 모두 필요합니다.
+
+### 4. 재확인 명령
+
+```powershell
+python -m pytest -q
+python -m pip check
 python .\stage8_demo.py
+python .\stage9_demo.py
 ```
 
-현재 수동 검수 qrel 기준 결과:
+8단계는 검색 평가 JSON을 로컬에 저장하고, 9단계는 임계값 비교 결과를 콘솔에 출력합니다. PDF가 없는 환경에서는 해당 PDF 테스트가 건너뛰어집니다. 8·9단계는 로컬 인덱스와 임베딩 모델이 필요하지만 Claude API를 호출하지 않습니다.
+
+## 프로젝트 구성
 
 ```text
-Page Hit@1:       0.875
-Page Hit@3:       1.000
-Evidence Hit@1:   0.625
-Evidence Hit@3:   1.000
-Evidence MRR@5:   0.812
+src/                 문서 모델, 파싱, 청킹, 임베딩, 검색, Qdrant, 임계값 계산
+tests/               기존 자동 테스트 16개
+data/                평가 질문·문서 준비 안내 (PDF·DB·원문 포함 결과는 제외)
+stage1_demo.py       Document / Page / Chunk 이해
+stage2_demo.py       실제 한 페이지 추출·청킹
+stage4_demo.py       문서·질문 임베딩
+stage5_demo.py       인메모리 코사인 검색
+stage6_demo.py       한 페이지 Qdrant 저장·검색
+stage7_demo.py       전체 PDF 색인·검색
+stage8_demo.py       페이지·직접 근거 청크 검색 평가
+stage9_demo.py       무근거 질문·임계값 비교
+stage10_demo.py      LangChain + Claude 답변 초안
+stage11_demo.py      LangGraph 입력 분기
+stage12_demo.py      Streamlit 웹 화면
+docs/               검증 기록, 면접 준비, 평가 스냅샷, 실제 화면
+LEARNING_LOG.md      구현 경로와 학습 기록
 ```
 
-전체 자동 테스트:
+실제 파일 번호를 유지했습니다. `stage3_demo.py`는 현재 저장소에 없으며 실행에 필요하지 않습니다.
 
-```powershell
-python -m pytest -v
-```
+## 확인된 한계와 1차 버전 범위
 
-실습 PDF가 로컬에 있으면 실제 18페이지 추출 테스트까지 실행하며, PDF가 없는 환경에서는 해당 테스트만 건너뜁니다. 실제 PDF 테스트는 대표 페이지의 한글·표·특수문자 추출을 확인하는 통합 테스트입니다. 모든 페이지의 데이터 품질 검사는 이후 별도의 문서 적재·품질 점검 단계에서 수행합니다.
+1. **입력 규칙의 누락:** 개인 증상에 대한 질환 추정 요청이 일반 RAG 경로로 통과한 사례가 있습니다.
+2. **불완전한 답변 보류:** 근거 부족을 언급한 뒤 관련 설명을 계속하는 사례가 있습니다.
+3. **출처 검증 없음:** 표시된 출처는 모델에 제공한 자료 목록이며, 답변의 각 주장과 인용이 정확히 대응하는지 자동 검증하지 않습니다.
+4. **문서·평가 범위 제한:** PDF 한 종과 소규모 개발용 평가셋만 사용합니다. 표·머리말·문장 경계가 청크에서 훼손될 수 있고 OCR은 구현하지 않았습니다.
+5. **규칙을 안전 보장으로 해석할 수 없음:** 부정·인용·복합 문맥과 다양한 개인정보·의료 판단 표현을 모두 판별하지 못합니다.
+6. **운영 기능 없음:** 대화 메모리, 실제 의료진 전달, 사용자 인증, 운영용 감사 로그, FastAPI, 외부 배포는 이 버전 범위가 아닙니다.
 
-현재 확인한 결과:
+위 한계는 수정 완료로 표시하지 않았습니다. 이 버전의 완료 기준은 **현재 동작·실패·평가 범위를 재현 가능한 형태로 기록하는 것**이며, 기능 추가는 별도 후속 작업입니다.
 
-```text
-추출 페이지: 18
-추출 글자 수: 1153
-생성된 청크 수: 5
-chunk_size: 300
-overlap: 50
-```
+## 업로드와 데이터 취급
 
-텍스트 길이와 청크 수는 PDF 파일과 PyMuPDF 버전에 따라 달라질 수 있습니다.
+PDF 원문, 로컬 Qdrant DB, 가상환경, 모델 캐시, API 키와 원문을 포함한 평가 결과는 저장소에서 제외합니다. 로컬 참고 문서 `결과.docx`도 업로드 대상에서 제외합니다. 화면은 사용자가 제공한 두 데모 캡처만 사용했고, 원본 이미지를 편집하지 않았습니다.
 
-## 이번 단계에서 이해한 내용
-
-- `document_id`는 검색 결과를 원문 출처와 다시 연결하는 식별자입니다.
-- 페이지 번호는 검색 근거의 위치를 인용하기 위해 유지합니다.
-- 긴 페이지를 작은 청크로 나누면 질문과 직접 관련된 범위를 검색하기 쉬워집니다.
-- overlap은 청크 경계에서 문맥이 완전히 끊기는 문제를 줄이지만 중복 저장을 증가시킵니다.
-- 단순 문자 청킹은 단어나 문장을 중간에서 자를 수 있습니다.
-- PDF의 표와 머리말·꼬리말은 텍스트 추출 과정에서 본문과 섞일 수 있습니다.
-- 실패 테스트로 마지막 중복 청크 문제를 재현하고 수정한 뒤 회귀 테스트로 보호했습니다.
-- E5에서는 문서에 `passage:`, 질문에 `query:` 접두어를 사용해야 합니다.
-- 임베딩 유사도는 정답 확률이 아니라 검색 관련도입니다.
-- 관련 페이지를 찾는 것과 질문에 직접 답하는 청크를 찾는 것은 다릅니다.
-- 키워드 적중은 진단용이며 relevance 정답표를 대체할 수 없습니다.
-
-## 현재 한계
-
-- 한 문서의 한 페이지만 실습했습니다.
-- 문자 수 기반 청킹이라 문장 경계를 보존하지 않습니다.
-- PDF 머리말, 페이지 번호, 표 구조를 별도로 정제하지 않았습니다.
-- 실제 PDF 자동 테스트는 대표 18페이지 한 건이며 전체 페이지 품질 검사는 아직 없습니다.
-- 검색 품질 평가는 아직 없습니다.
-- 인메모리 기준 검색과 Qdrant 검색을 모두 구현했지만 검색 대상은 아직 한 페이지뿐입니다.
-- 현재 corpus는 우울증 진료지침 PDF 한 종이며 다른 기관 문서는 아직 포함하지 않습니다.
-- 평가 질문은 8개뿐이며 `relevant_chunk_ids`는 현재 index version에 종속된 수동 검수 초안입니다.
-- 이 단계에는 생성형 답변이나 의료 안전 Agent 동작이 없습니다.
-
-## 다음 단계
-
-- PDF 전처리 품질 점검
-- 무근거·무관 질문을 이용한 검색 거부 임계값 평가
-- 의료 안전 라우팅과 FastAPI
-- 검색 평가, 의료 안전 라우팅, API
+문서의 이용·재배포 조건은 [발행기관 안내](https://guideline.or.kr/chronic/view.php?number=98)를 따릅니다. 화면 속 생성 답변은 작동 관찰 자료이지 검증된 의료 정보가 아닙니다.

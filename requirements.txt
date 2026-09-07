@@ -2,3 +2,6 @@ pymupdf==1.28.2
 sentence-transformers>=3.0
 qdrant-client>=1.9
 pytest==9.1.1
+langchain-anthropic==1.7.1
+langgraph==1.2.11
+streamlit==1.63.0

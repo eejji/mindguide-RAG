@@ -4,8 +4,16 @@ __pycache__/
 .pytest_cache/
 *.py[cod]
 .env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+.cache/
+.hf_cache/
 tmp/
 data/documents/*.pdf
 data/qdrant_local/
 data/traces/*.jsonl
 data/eval_results/*.json
+
+# Local reference document; keep on disk, do not upload.
+/결과.docx
